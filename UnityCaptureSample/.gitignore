@@ -1,6 +1,10 @@
 Library/*
 Temp/*
+Packages/*
 UnityPackageManager/*
+obj/*
+.vscode/*
+
 *.csproj
 *.sln
 *.suo
