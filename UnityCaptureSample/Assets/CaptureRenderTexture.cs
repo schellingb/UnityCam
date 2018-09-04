@@ -12,7 +12,6 @@ public class CaptureRenderTexture : MonoBehaviour {
 	public int width = 320;
 	public int height = 240;
 	public MeshRenderer outputRenderer;
-	RenderTexture renderTex;
 	Texture2D activeTex;
 	UnityCaptureTexture capTex;
 	int y = 0;
@@ -22,20 +21,13 @@ public class CaptureRenderTexture : MonoBehaviour {
 	void Start () {
 		// Create textures
 		activeTex = new Texture2D(width, height);
-		renderTex = new RenderTexture(width, height, 0);
-
 		capTex = GetComponent<UnityCaptureTexture>();
-		capTex.renderTex = renderTex;
 
 		if (outputRenderer != null) outputRenderer.material.mainTexture = activeTex;
 	}
 	
 	void Update() {
-		UpdateTexture();
-		Graphics.Blit(activeTex, renderTex);
-	}
-
-	void UpdateTexture() {
+		// Draw next line on texture 
 		for (int x = 0; x < width; x++) {
 			activeTex.SetPixel(x, y, color);
 		}
@@ -45,6 +37,10 @@ public class CaptureRenderTexture : MonoBehaviour {
 			y = 0;
 			color = new Color(color.g, color.b, color.r);
 		}
+
 		activeTex.Apply();
+
+		// Update the capture texture
+		capTex.UpdateTexture(activeTex);
 	}
 }

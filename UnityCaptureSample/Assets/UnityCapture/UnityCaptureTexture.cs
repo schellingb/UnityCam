@@ -41,7 +41,7 @@ public class UnityCaptureTexture : MonoBehaviour
     [SerializeField] [Tooltip("Check to enable VSync during capturing")] public bool EnableVSync = false;
     [SerializeField] [Tooltip("Set the desired render target frame rate")] public int TargetFrameRate = 60;
     [SerializeField] [Tooltip("Check to disable output of warnings")] public bool HideWarnings = false;
-    [SerializeField] [Tooltip("RenderTexture to output to camera")] public RenderTexture renderTex;
+    private RenderTexture outputTexture;
 
     enum ECaptureSendResult { SUCCESS = 0, WARNING_FRAMESKIP = 1, WARNING_CAPTUREINACTIVE = 2, ERROR_UNSUPPORTEDGRAPHICSDEVICE = 100, ERROR_PARAMETER = 101, ERROR_TOOLARGERESOLUTION = 102, ERROR_TEXTUREFORMAT = 103, ERROR_READTEXTURE = 104 };
     [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static System.IntPtr CaptureCreateInstance(int CapNum);
@@ -64,7 +64,6 @@ public class UnityCaptureTexture : MonoBehaviour
     void Start()
     {
         CaptureInstance = CaptureCreateInstance((int)CaptureDevice);
-        if (renderTex == null) Debug.Log("[UnityCapture] RenderTexture must be provided for UnityCaptureTexture");
     }
 
     void OnDestroy()
@@ -72,11 +71,15 @@ public class UnityCaptureTexture : MonoBehaviour
         CaptureDeleteInstance(CaptureInstance);
     }
 
-    void Update()
+    public void UpdateTexture(Texture2D texture)
     {
-        if (renderTex == null) return;
+        if (texture == null) return;
+        if (outputTexture == null) outputTexture = new RenderTexture(texture.width, texture.height, 0);
+
+        Graphics.Blit(texture, outputTexture);
+
         if (CaptureInstance == System.IntPtr.Zero) return;
-        switch (CaptureSendTexture(CaptureInstance, renderTex.GetNativeTexturePtr(), DoubleBuffering, ResizeMode, MirrorMode, QualitySettings.activeColorSpace == ColorSpace.Linear))
+        switch (CaptureSendTexture(CaptureInstance, outputTexture.GetNativeTexturePtr(), DoubleBuffering, ResizeMode, MirrorMode, QualitySettings.activeColorSpace == ColorSpace.Linear))
         {
             case ECaptureSendResult.SUCCESS: break;
             case ECaptureSendResult.WARNING_FRAMESKIP:               if (!HideWarnings) Debug.LogWarning("[UnityCapture] Capture device did skip a frame read, capture frame rate will not match render frame rate."); break;
