@@ -42,7 +42,7 @@ public class UnityCaptureTexture : MonoBehaviour
 
     [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static System.IntPtr CaptureCreateInstance(int CapNum);
     [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static void CaptureDeleteInstance(System.IntPtr instance);
-    [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static UnityCapture.ECaptureSendResult CaptureSendTexture(System.IntPtr instance, System.IntPtr nativetexture, bool UseDoubleBuffering, EResizeMode ResizeMode, EMirrorMode MirrorMode, bool IsLinearColorSpace);
+    [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static UnityCapture.ECaptureSendResult CaptureSendTexture(System.IntPtr instance, System.IntPtr nativetexture, bool UseDoubleBuffering, UnityCapture.EResizeMode ResizeMode, UnityCapture.EMirrorMode MirrorMode, bool IsLinearColorSpace);
     System.IntPtr CaptureInstance;
 
     void Awake()
