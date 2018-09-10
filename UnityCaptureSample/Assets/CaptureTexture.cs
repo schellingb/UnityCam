@@ -8,24 +8,28 @@
 
 using UnityEngine;
 
-public class CaptureRenderTexture : MonoBehaviour {
+public class CaptureTexture : MonoBehaviour {
 	public int width = 320;
 	public int height = 240;
 	public MeshRenderer outputRenderer;
 	Texture2D activeTex;
-	UnityCaptureTexture capTex;
+	UnityCapture.Interface captureInterface;
 	int y = 0;
 	Color color = Color.red;
 
 
 	void Start () {
 		// Create textures
-		activeTex = new Texture2D(width, height);
-		capTex = GetComponent<UnityCaptureTexture>();
+		activeTex = new Texture2D(width, height, TextureFormat.ARGB32, false);
+		captureInterface = new UnityCapture.Interface(UnityCapture.ECaptureDevice.CaptureDevice1);
 
 		if (outputRenderer != null) outputRenderer.material.mainTexture = activeTex;
 	}
 	
+	void OnDestroy() {
+		captureInterface.Close();
+	}
+
 	void Update() {
 		// Draw next line on texture 
 		for (int x = 0; x < width; x++) {
@@ -41,6 +45,10 @@ public class CaptureRenderTexture : MonoBehaviour {
 		activeTex.Apply();
 
 		// Update the capture texture
-		capTex.UpdateTexture(activeTex);
+		UnityCapture.ECaptureSendResult result = captureInterface.SendTexture(activeTex, false, UnityCapture.EResizeMode.LinearResize, UnityCapture.EMirrorMode.Disabled);
+
+		if (result != UnityCapture.ECaptureSendResult.SUCCESS) {
+			Debug.Log(System.Enum.GetName(typeof(UnityCapture.ECaptureSendResult, result)));
+		}
 	}
 }

@@ -31,7 +31,8 @@ public class UnityCapture : MonoBehaviour
     public enum ECaptureDevice { CaptureDevice1 = 0, CaptureDevice2 = 1, CaptureDevice3 = 2, CaptureDevice4 = 3, CaptureDevice5 = 4, CaptureDevice6 = 5, CaptureDevice7 = 6, CaptureDevice8 = 7, CaptureDevice9 = 8, CaptureDevice10 = 9 }
     public enum EResizeMode { Disabled = 0, LinearResize = 1 }
     public enum EMirrorMode { Disabled = 0, MirrorHorizontally = 1 }
-
+    public enum ECaptureSendResult { SUCCESS = 0, WARNING_FRAMESKIP = 1, WARNING_CAPTUREINACTIVE = 2, ERROR_UNSUPPORTEDGRAPHICSDEVICE = 100, ERROR_PARAMETER = 101, ERROR_TOOLARGERESOLUTION = 102, ERROR_TEXTUREFORMAT = 103, ERROR_READTEXTURE = 104, ERROR_INVALIDCAPTUREINSTANCEPTR = 200};
+    
     [SerializeField] [Tooltip("Capture device index")] public ECaptureDevice CaptureDevice = ECaptureDevice.CaptureDevice1;
     [SerializeField] [Tooltip("Scale image if Unity and capture resolution don't match (can introduce frame dropping, not recommended)")] public EResizeMode ResizeMode = EResizeMode.Disabled;
     [SerializeField] [Tooltip("Mirror captured output image")] public EMirrorMode MirrorMode = EMirrorMode.Disabled;
@@ -40,11 +41,7 @@ public class UnityCapture : MonoBehaviour
     [SerializeField] [Tooltip("Set the desired render target frame rate")] public int TargetFrameRate = 60;
     [SerializeField] [Tooltip("Check to disable output of warnings")] public bool HideWarnings = false;
 
-    public enum ECaptureSendResult { SUCCESS = 0, WARNING_FRAMESKIP = 1, WARNING_CAPTUREINACTIVE = 2, ERROR_UNSUPPORTEDGRAPHICSDEVICE = 100, ERROR_PARAMETER = 101, ERROR_TOOLARGERESOLUTION = 102, ERROR_TEXTUREFORMAT = 103, ERROR_READTEXTURE = 104 };
-    [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static System.IntPtr CaptureCreateInstance(int CapNum);
-    [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static void CaptureDeleteInstance(System.IntPtr instance);
-    [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static ECaptureSendResult CaptureSendTexture(System.IntPtr instance, System.IntPtr nativetexture, bool UseDoubleBuffering, EResizeMode ResizeMode, EMirrorMode MirrorMode, bool IsLinearColorSpace);
-    System.IntPtr CaptureInstance;
+    Interface CaptureInterface;
 
     void Awake()
     {
@@ -60,19 +57,18 @@ public class UnityCapture : MonoBehaviour
 
     void Start()
     {
-        CaptureInstance = CaptureCreateInstance((int)CaptureDevice);
+        CaptureInterface = new Interface(CaptureDevice);
     }
 
     void OnDestroy()
     {
-        CaptureDeleteInstance(CaptureInstance);
+        CaptureInterface.Close();
     }
 
     void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
         Graphics.Blit(source, destination);
-        if (CaptureInstance == System.IntPtr.Zero) return;
-        switch (CaptureSendTexture(CaptureInstance, source.GetNativeTexturePtr(), DoubleBuffering, ResizeMode, MirrorMode, QualitySettings.activeColorSpace == ColorSpace.Linear))
+        switch (CaptureInterface.SendTexture(source, DoubleBuffering, ResizeMode, MirrorMode))
         {
             case ECaptureSendResult.SUCCESS: break;
             case ECaptureSendResult.WARNING_FRAMESKIP:               if (!HideWarnings) Debug.LogWarning("[UnityCapture] Capture device did skip a frame read, capture frame rate will not match render frame rate."); break;
@@ -82,6 +78,29 @@ public class UnityCapture : MonoBehaviour
             case ECaptureSendResult.ERROR_TOOLARGERESOLUTION:        Debug.LogError("[UnityCapture] Render resolution is too large to send to capture device"); break;
             case ECaptureSendResult.ERROR_TEXTUREFORMAT:             Debug.LogError("[UnityCapture] Render texture format is unsupported (only basic non-HDR (ARGB32) and HDR (FP16/ARGB Half) formats are supported)"); break;
             case ECaptureSendResult.ERROR_READTEXTURE:               Debug.LogError("[UnityCapture] Error while reading texture image data"); break;
+            case ECaptureSendResult.ERROR_INVALIDCAPTUREINSTANCEPTR: Debug.LogError("[UnityCapture] Invalid Capture Instance Pointer"); break;
+        }
+    }
+
+
+    public class Interface {
+        [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static System.IntPtr CaptureCreateInstance(int CapNum);
+        [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static void CaptureDeleteInstance(System.IntPtr instance);
+        [System.Runtime.InteropServices.DllImport("UnityCapturePlugin")] extern static ECaptureSendResult CaptureSendTexture(System.IntPtr instance, System.IntPtr nativetexture, bool UseDoubleBuffering, EResizeMode ResizeMode, EMirrorMode MirrorMode, bool IsLinearColorSpace);
+        System.IntPtr CaptureInstance;
+        
+        public Interface(ECaptureDevice captureDevice) {
+            CaptureInstance = CaptureCreateInstance((int)captureDevice);
+        }
+
+        public void Close() {
+            CaptureDeleteInstance(CaptureInstance);
+        }
+
+        public ECaptureSendResult SendTexture(Texture source, bool DoubleBuffering, EResizeMode ResizeMode, EMirrorMode MirrorMode) {
+            if (CaptureInstance == System.IntPtr.Zero) return ECaptureSendResult.ERROR_INVALIDCAPTUREINSTANCEPTR;
+            ECaptureSendResult result = CaptureSendTexture(CaptureInstance, source.GetNativeTexturePtr(), DoubleBuffering, ResizeMode, MirrorMode, QualitySettings.activeColorSpace == ColorSpace.Linear);
+            return result;
         }
     }
 }
