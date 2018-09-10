@@ -48,7 +48,7 @@ public class CaptureTexture : MonoBehaviour {
 		UnityCapture.ECaptureSendResult result = captureInterface.SendTexture(activeTex, false, UnityCapture.EResizeMode.LinearResize, UnityCapture.EMirrorMode.Disabled);
 
 		if (result != UnityCapture.ECaptureSendResult.SUCCESS) {
-			Debug.Log(System.Enum.GetName(typeof(UnityCapture.ECaptureSendResult, result)));
+			Debug.Log(System.Enum.GetName(typeof(UnityCapture.ECaptureSendResult), result));
 		}
 	}
 }
